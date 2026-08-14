@@ -1,0 +1,136 @@
+import { useState, useEffect, useMemo } from "react";
+import { fetchVenues } from "./overpass";
+import { filterVenues, pickRandom, isOpenNow } from "./spin";
+import { buildReason } from "./reasoning";
+import VenueCard from "./VenueCard";
+
+const DISTANCE_OPTIONS = [
+  { label: "1 km", km: 1 },
+  { label: "3 km", km: 3 },
+  { label: "5+ km", km: null },
+];
+
+export default function SpinWidget({ city, occasion }) {
+  const [status, setStatus] = useState("idle"); // idle | loading | ready | error
+  const [allVenues, setAllVenues] = useState([]);
+  const [maxDistanceKm, setMaxDistanceKm] = useState(3);
+  const [openNowOnly, setOpenNowOnly] = useState(false);
+  const [picked, setPicked] = useState(null);
+  const [reason, setReason] = useState("");
+  const [spinning, setSpinning] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    setStatus("loading");
+    fetchVenues({
+      lat: city.lat,
+      lng: city.lng,
+      radiusMeters: occasion.radiusMeters,
+      osmTags: occasion.osmTags,
+    })
+      .then((venues) => {
+        if (cancelled) return;
+        setAllVenues(venues);
+        setStatus("ready");
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setStatus("error");
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [city.slug, occasion.slug]);
+
+  const eligible = useMemo(
+    () => filterVenues(allVenues, { maxDistanceKm, openNowOnly }),
+    [allVenues, maxDistanceKm, openNowOnly]
+  );
+
+  function handleSpin() {
+    if (!eligible.length) return;
+    setSpinning(true);
+    setPicked(null);
+    // brief delay purely for the spin animation to feel intentional,
+    // not because anything is actually processing
+    setTimeout(() => {
+      const venue = pickRandom(eligible);
+      const openStatus = isOpenNow(venue.openingHours);
+      setReason(buildReason(venue, { openStatus }));
+      setPicked(venue);
+      setSpinning(false);
+    }, 650);
+  }
+
+  return (
+    <div className="overflow-hidden rounded-card bg-wine2 p-6 sm:p-8">
+      <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
+        <div className="text-sm font-semibold text-cream">
+          {status === "loading" && "Finding spots nearby…"}
+          {status === "ready" &&
+            `${eligible.length} spot${eligible.length === 1 ? "" : "s"} match your filters`}
+          {status === "error" && "Couldn't reach the map data — try again"}
+        </div>
+      </div>
+
+      <div className="mb-5 flex flex-wrap gap-2">
+        {DISTANCE_OPTIONS.map((opt) => (
+          <button
+            key={opt.label}
+            onClick={() => setMaxDistanceKm(opt.km)}
+            className={`rounded-full px-4 py-2 text-xs font-semibold transition-all active:scale-95 ${
+              maxDistanceKm === opt.km
+                ? "bg-gold text-ink"
+                : "bg-cream/10 text-cream"
+            }`}
+          >
+            {opt.label}
+          </button>
+        ))}
+        <button
+          onClick={() => setOpenNowOnly((v) => !v)}
+          className={`rounded-full px-4 py-2 text-xs font-semibold transition-all active:scale-95 ${
+            openNowOnly ? "bg-gold text-ink" : "bg-cream/10 text-cream"
+          }`}
+        >
+          Open now
+        </button>
+      </div>
+
+      {status === "ready" && eligible.length === 0 && (
+        <div className="mb-5 rounded-2xl bg-cream/10 px-4 py-3 text-sm text-cream/80">
+          Nothing matches those filters yet — try widening the distance.
+        </div>
+      )}
+
+      {status === "error" && (
+        <div className="mb-5 rounded-2xl bg-cream/10 px-4 py-3 text-sm text-cream/80">
+          The free map service didn't respond in time. This can happen — give it another try in a moment.
+        </div>
+      )}
+
+      {!picked && (
+        <button
+          onClick={handleSpin}
+          disabled={status !== "ready" || eligible.length === 0 || spinning}
+          className={`flex w-full items-center justify-center gap-2 rounded-2xl py-4 text-base font-bold transition-transform active:scale-95 ${
+            status === "ready" && eligible.length > 0
+              ? "bg-gold text-ink"
+              : "cursor-not-allowed bg-cream/10 text-cream/40"
+          } ${spinning ? "animate-spin-pulse" : ""}`}
+        >
+          {spinning ? "Spinning…" : "🎯 Spin"}
+        </button>
+      )}
+
+      {picked && (
+        <VenueCard
+          venue={picked}
+          reason={reason}
+          occasionSlug={occasion.slug}
+          onSpinAgain={handleSpin}
+        />
+      )}
+    </div>
+  );
+}

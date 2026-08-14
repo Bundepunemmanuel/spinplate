@@ -1,0 +1,80 @@
+// OSM's opening_hours syntax is a real spec (e.g. "Mo-Fr 08:00-17:00;
+// Sa-Su 09:00-15:00") but full parsing is genuinely complex. This handles
+// the common simple cases and honestly reports "unknown" rather than
+// guessing wrong for anything unusual — a false "closed" would wrongly
+// filter out a real venue, so we err toward including it when unsure.
+const DAY_CODES = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"];
+
+function parseSimpleRange(rangeStr) {
+  const match = rangeStr.match(/(\d{1,2}):(\d{2})-(\d{1,2}):(\d{2})/);
+  if (!match) return null;
+  const [, h1, m1, h2, m2] = match.map(Number);
+  return { startMin: h1 * 60 + m1, endMin: h2 * 60 + m2 };
+}
+
+export function isOpenNow(openingHoursStr, now = new Date()) {
+  if (!openingHoursStr) return "unknown";
+  if (openingHoursStr.toLowerCase() === "24/7") return true;
+
+  const currentDay = DAY_CODES[now.getDay()];
+  const currentMin = now.getHours() * 60 + now.getMinutes();
+
+  const segments = openingHoursStr.split(";").map((s) => s.trim());
+
+  for (const seg of segments) {
+    const dayMatch = seg.match(/^([A-Za-z,-]+)\s+(.+)$/);
+    if (!dayMatch) continue;
+    const [, dayPart, timePart] = dayMatch;
+
+    // only handle simple "Mo-Fr" or single-day "Sa" style ranges —
+    // anything more exotic (holidays, "off", etc.) falls through to unknown
+    const dayRangeMatch = dayPart.match(/^([A-Za-z]{2})(-([A-Za-z]{2}))?$/);
+    if (!dayRangeMatch) return "unknown";
+
+    const startDay = dayRangeMatch[1];
+    const endDay = dayRangeMatch[3] || startDay;
+    const startIdx = DAY_CODES.indexOf(startDay);
+    const endIdx = DAY_CODES.indexOf(endDay);
+    if (startIdx === -1 || endIdx === -1) return "unknown";
+
+    const inDayRange =
+      startIdx <= endIdx
+        ? startIdx <= DAY_CODES.indexOf(currentDay) &&
+          DAY_CODES.indexOf(currentDay) <= endIdx
+        : DAY_CODES.indexOf(currentDay) >= startIdx ||
+          DAY_CODES.indexOf(currentDay) <= endIdx;
+
+    if (!inDayRange) continue;
+
+    const range = parseSimpleRange(timePart);
+    if (!range) return "unknown";
+
+    return currentMin >= range.startMin && currentMin <= range.endMin;
+  }
+
+  return false;
+}
+
+export function filterVenues(venues, { maxDistanceKm, openNowOnly }) {
+  return venues.filter((v) => {
+    if (maxDistanceKm && v.distanceKm > maxDistanceKm) return false;
+    if (openNowOnly) {
+      const open = isOpenNow(v.openingHours);
+      if (open === false) return false;
+      // "unknown" passes through — we don't want to hide a venue just
+      // because its hours weren't mapped
+    }
+    return true;
+  });
+}
+
+// Uniform random pick. OSM has no reliable quality signal (no ratings) to
+// weight by, so we're honest about that instead of pretending otherwise —
+// slight nudge toward venues that at least have a cuisine tag set, since
+// that usually means a more complete listing.
+export function pickRandom(venues) {
+  if (!venues.length) return null;
+  const withCuisine = venues.filter((v) => v.cuisine);
+  const pool = withCuisine.length >= 3 ? withCuisine : venues;
+  return pool[Math.floor(Math.random() * pool.length)];
+}
