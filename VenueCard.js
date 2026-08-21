@@ -1,6 +1,14 @@
 import CategoryIcon from "./CategoryIcon";
 
-export default function VenueCard({ venue, reason, occasionSlug, onSpinAgain }) {
+// Builds a small bounding box around the venue for a free OpenStreetMap
+// embed — no API key, no billing, unlike Google Maps Embed API.
+function buildOsmEmbedUrl(lat, lng) {
+  const delta = 0.006;
+  const bbox = [lng - delta, lat - delta, lng + delta, lat + delta].join(",");
+  return `https://www.openstreetmap.org/export/embed.html?bbox=${bbox}&layer=mapnik&marker=${lat},${lng}`;
+}
+
+export default function VenueCard({ venue, reason, occasionSlug, onSpinAgain, accent = "#3D1220" }) {
   const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
     venue.name
   )}&query_place_id=&center=${venue.lat},${venue.lng}`;
@@ -8,7 +16,10 @@ export default function VenueCard({ venue, reason, occasionSlug, onSpinAgain }) 
   return (
     <div className="animate-reveal rounded-card bg-cream p-6 text-ink shadow-lg sm:p-8">
       <div className="flex items-start justify-between gap-4">
-        <div className="flex h-14 w-14 flex-shrink-0 items-center justify-center rounded-2xl bg-wine/10 text-wine">
+        <div
+          className="flex h-14 w-14 flex-shrink-0 items-center justify-center rounded-2xl"
+          style={{ backgroundColor: `${accent}1A`, color: accent }}
+        >
           <CategoryIcon occasion={occasionSlug} />
         </div>
         <button
@@ -30,6 +41,18 @@ export default function VenueCard({ venue, reason, occasionSlug, onSpinAgain }) 
       <div className="mt-4 rounded-2xl bg-wine/5 px-4 py-3 text-sm font-medium text-wine">
         {reason}
       </div>
+
+      {venue.lat && venue.lng && (
+        <div className="mt-4 overflow-hidden rounded-2xl border border-wine/10">
+          <iframe
+            title={`Map preview of ${venue.name}`}
+            src={buildOsmEmbedUrl(venue.lat, venue.lng)}
+            className="h-40 w-full grayscale-[15%]"
+            loading="lazy"
+            style={{ border: 0 }}
+          />
+        </div>
+      )}
 
       <a
         href={mapsUrl}

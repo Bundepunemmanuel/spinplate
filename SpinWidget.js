@@ -10,7 +10,7 @@ const DISTANCE_OPTIONS = [
   { label: "5+ km", km: null },
 ];
 
-export default function SpinWidget({ city, occasion }) {
+export default function SpinWidget({ city, occasion, accent = "#C89B3C", accentText = "#E0B85C" }) {
   const [status, setStatus] = useState("idle"); // idle | loading | ready | error
   const [allVenues, setAllVenues] = useState([]);
   const [maxDistanceKm, setMaxDistanceKm] = useState(3);
@@ -67,31 +67,42 @@ export default function SpinWidget({ city, occasion }) {
       <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
         <div className="text-sm font-semibold text-cream">
           {status === "loading" && "Finding spots nearby…"}
-          {status === "ready" &&
-            `${eligible.length} spot${eligible.length === 1 ? "" : "s"} match your filters`}
+          {status === "ready" && (
+            <>
+              <span style={{ color: accentText }}>{allVenues.length} real spot{allVenues.length === 1 ? "" : "s"}</span>
+              {` mapped here — ${eligible.length} match your filters`}
+            </>
+          )}
           {status === "error" && "Couldn't reach the map data — try again"}
         </div>
       </div>
 
       <div className="mb-5 flex flex-wrap gap-2">
-        {DISTANCE_OPTIONS.map((opt) => (
-          <button
-            key={opt.label}
-            onClick={() => setMaxDistanceKm(opt.km)}
-            className={`rounded-full px-4 py-2 text-xs font-semibold transition-all active:scale-95 ${
-              maxDistanceKm === opt.km
-                ? "bg-gold text-ink"
-                : "bg-cream/10 text-cream"
-            }`}
-          >
-            {opt.label}
-          </button>
-        ))}
+        {DISTANCE_OPTIONS.map((opt) => {
+          const active = maxDistanceKm === opt.km;
+          return (
+            <button
+              key={opt.label}
+              onClick={() => setMaxDistanceKm(opt.km)}
+              className="rounded-full px-4 py-2 text-xs font-semibold transition-all active:scale-95"
+              style={
+                active
+                  ? { backgroundColor: accent, color: "#F7F0E4" }
+                  : { backgroundColor: "rgba(247,240,228,0.1)", color: "#F7F0E4" }
+              }
+            >
+              {opt.label}
+            </button>
+          );
+        })}
         <button
           onClick={() => setOpenNowOnly((v) => !v)}
-          className={`rounded-full px-4 py-2 text-xs font-semibold transition-all active:scale-95 ${
-            openNowOnly ? "bg-gold text-ink" : "bg-cream/10 text-cream"
-          }`}
+          className="rounded-full px-4 py-2 text-xs font-semibold transition-all active:scale-95"
+          style={
+            openNowOnly
+              ? { backgroundColor: accent, color: "#F7F0E4" }
+              : { backgroundColor: "rgba(247,240,228,0.1)", color: "#F7F0E4" }
+          }
         >
           Open now
         </button>
@@ -129,6 +140,7 @@ export default function SpinWidget({ city, occasion }) {
           reason={reason}
           occasionSlug={occasion.slug}
           onSpinAgain={handleSpin}
+          accent={accent}
         />
       )}
     </div>
