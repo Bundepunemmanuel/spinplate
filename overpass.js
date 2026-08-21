@@ -8,6 +8,13 @@ const ENDPOINTS = [
   "https://overpass.openstreetmap.ru/api/interpreter",
 ];
 
+// Per-endpoint client-side timeout. The [timeout:25] in the query only
+// tells the *server* when to give up — it doesn't stop the browser from
+// waiting indefinitely for a reply. Free mirrors can hang far longer than
+// that under load, so we abort and move to the next mirror ourselves
+// rather than let the user stare at a blank screen for a minute+.
+const ENDPOINT_TIMEOUT_MS = 9000;
+
 function buildQuery({ lat, lng, radiusMeters, osmTags }) {
   const clauses = osmTags
     .map(
@@ -22,24 +29,35 @@ ${clauses}
 out body;`;
 }
 
-async function tryEndpoint(url, query) {
-  const res = await fetch(url, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/x-www-form-urlencoded",
-    },
-    body: "data=" + encodeURIComponent(query),
-  });
-  if (!res.ok) throw new Error(`Overpass endpoint failed: ${res.status}`);
-  return res.json();
+async function tryEndpoint(url, query, timeoutMs) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const res = await fetch(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded",
+      },
+      body: "data=" + encodeURIComponent(query),
+      signal: controller.signal,
+    });
+    if (!res.ok) throw new Error(`Overpass endpoint failed: ${res.status}`);
+    return await res.json();
+  } finally {
+    clearTimeout(timer);
+  }
 }
 
 // Tries each public mirror in order until one responds successfully.
-async function queryOverpass(query) {
+// `onAttempt(index, url)` fires right before each try, so the UI can show
+// "trying another source" instead of sitting on one silent loading state.
+async function queryOverpass(query, { onAttempt } = {}) {
   let lastError;
-  for (const url of ENDPOINTS) {
+  for (let i = 0; i < ENDPOINTS.length; i++) {
+    const url = ENDPOINTS[i];
+    if (onAttempt) onAttempt(i, url);
     try {
-      return await tryEndpoint(url, query);
+      return await tryEndpoint(url, query, ENDPOINT_TIMEOUT_MS);
     } catch (err) {
       lastError = err;
     }
@@ -87,8 +105,8 @@ function normalizeVenues(elements, originLat, originLng) {
     });
 }
 
-export async function fetchVenues({ lat, lng, radiusMeters, osmTags }) {
+export async function fetchVenues({ lat, lng, radiusMeters, osmTags, onAttempt }) {
   const query = buildQuery({ lat, lng, radiusMeters, osmTags });
-  const data = await queryOverpass(query);
+  const data = await queryOverpass(query, { onAttempt });
   return normalizeVenues(data.elements || [], lat, lng);
 }
