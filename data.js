@@ -67,10 +67,20 @@ export const OCCASIONS = [
       nashville:
         "Nashville brunch usually means biscuits, some version of hot chicken, and a wait if you're anywhere near Five Points or 12 South.",
     },
-    faqLongTail: (city) => ({
-      q: `What's the best brunch in ${city} with a view?`,
-      a: `SpinPlate doesn't tag venues for "view" specifically — OpenStreetMap doesn't reliably track that. What we can filter on is outdoor seating, which is often the closest honest proxy. Toggle it on if a patio matters more than a specific skyline.`,
-    }),
+    faqLongTail: {
+      austin: {
+        q: "What's the best brunch in Austin with a view?",
+        a: 'SpinPlate doesn\'t tag venues for "view" specifically — OpenStreetMap doesn\'t reliably track that. What we can filter on is outdoor seating, which is often the closest honest proxy. Toggle it on if a patio matters more than a specific skyline.',
+      },
+      denver: {
+        q: "What's the best brunch in Denver with a view?",
+        a: 'SpinPlate doesn\'t tag venues for "view" specifically — OpenStreetMap doesn\'t reliably track that. What we can filter on is outdoor seating, which is often the closest honest proxy. Toggle it on if a mountain-facing patio matters more than a specific view.',
+      },
+      nashville: {
+        q: "What's the best brunch in Nashville with a view?",
+        a: 'SpinPlate doesn\'t tag venues for "view" specifically — OpenStreetMap doesn\'t reliably track that. What we can filter on is outdoor seating, which is often the closest honest proxy. Toggle it on if a patio matters more than a specific skyline.',
+      },
+    },
   },
   {
     slug: "date-night",
@@ -89,10 +99,20 @@ export const OCCASIONS = [
       nashville:
         "Nashville does date night two ways: quiet neighborhood spot, or dinner before a show downtown — both are easy to find here.",
     },
-    faqLongTail: (city) => ({
-      q: `What's a good romantic date night spot in ${city}?`,
-      a: `"Romantic" isn't something OpenStreetMap tags, so we can't filter for it directly. What tends to get closest is a quieter spot with outdoor seating — toggle that filter and set a tighter distance for something walkable and low-key.`,
-    }),
+    faqLongTail: {
+      austin: {
+        q: "What's a good romantic date night spot in Austin?",
+        a: '"Romantic" isn\'t something OpenStreetMap tags, so we can\'t filter for it directly. What tends to get closest is a quieter spot with outdoor seating — toggle that filter and set a tighter distance for something walkable and low-key.',
+      },
+      denver: {
+        q: "What's a good romantic date night spot in Denver?",
+        a: '"Romantic" isn\'t something OpenStreetMap tags, so we can\'t filter for it directly. What tends to get closest is a quieter spot with outdoor seating — toggle that filter and set a tighter distance for something walkable and low-key.',
+      },
+      nashville: {
+        q: "What's a good romantic date night spot in Nashville?",
+        a: '"Romantic" isn\'t something OpenStreetMap tags, so we can\'t filter for it directly. What tends to get closest is a quieter spot with outdoor seating — toggle that filter and set a tighter distance for something walkable and low-key.',
+      },
+    },
   },
   {
     slug: "coffee",
@@ -114,10 +134,20 @@ export const OCCASIONS = [
       nashville:
         "Nashville's coffee shops are scattered through Germantown, East Nashville, and the Gulch, often inside converted buildings.",
     },
-    faqLongTail: (city) => ({
-      q: `What's a good coffee shop in ${city} for working?`,
-      a: `We don't have a reliable "has wifi" or "laptop-friendly" tag to filter on — OSM coverage for that is spotty. Outdoor seating is the one proxy we do have, so it's worth toggling if you want options beyond a counter and two stools.`,
-    }),
+    faqLongTail: {
+      austin: {
+        q: "What's a good coffee shop in Austin for working?",
+        a: 'We don\'t have a reliable "has wifi" or "laptop-friendly" tag to filter on — OSM coverage for that is spotty. Outdoor seating is the one proxy we do have, so it\'s worth toggling if you want options beyond a counter and two stools.',
+      },
+      denver: {
+        q: "What's a good coffee shop in Denver for working?",
+        a: 'We don\'t have a reliable "has wifi" or "laptop-friendly" tag to filter on — OSM coverage for that is spotty. Outdoor seating is the one proxy we do have, so it\'s worth toggling if you want options beyond a counter and two stools.',
+      },
+      nashville: {
+        q: "What's a good coffee shop in Nashville for working?",
+        a: 'We don\'t have a reliable "has wifi" or "laptop-friendly" tag to filter on — OSM coverage for that is spotty. Outdoor seating is the one proxy we do have, so it\'s worth toggling if you want options beyond a counter and two stools.',
+      },
+    },
   },
   {
     slug: "food-trucks",
@@ -136,10 +166,20 @@ export const OCCASIONS = [
       nashville:
         "Nashville's food trucks show up heaviest around events and breweries, though mapping coverage varies more here than for sit-down spots.",
     },
-    faqLongTail: (city) => ({
-      q: `Are there food trucks near me in ${city} open late?`,
-      a: `Depends entirely on how well the truck's hours are mapped on OpenStreetMap — a lot of trucks don't list hours at all. Turn on "open now" to filter out the ones marked closed, but treat anything marked "unknown" as worth a quick call first.`,
-    }),
+    faqLongTail: {
+      austin: {
+        q: "Are there food trucks near me in Austin open late?",
+        a: 'Depends entirely on how well the truck\'s hours are mapped on OpenStreetMap — a lot of trucks don\'t list hours at all. Turn on "open now" to filter out the ones marked closed, but treat anything marked "unknown" as worth a quick call first.',
+      },
+      denver: {
+        q: "Are there food trucks near me in Denver open late?",
+        a: 'Depends entirely on how well the truck\'s hours are mapped on OpenStreetMap — a lot of trucks don\'t list hours at all. Turn on "open now" to filter out the ones marked closed, but treat anything marked "unknown" as worth a quick call first.',
+      },
+      nashville: {
+        q: "Are there food trucks near me in Nashville open late?",
+        a: 'Depends entirely on how well the truck\'s hours are mapped on OpenStreetMap — a lot of trucks don\'t list hours at all. Turn on "open now" to filter out the ones marked closed, but treat anything marked "unknown" as worth a quick call first.',
+      },
+    },
   },
 ];
 
@@ -168,7 +208,7 @@ function getStandardFaqs(city, occasion) {
 }
 
 export function getFaqs(city, occasion) {
-  return [...getStandardFaqs(city, occasion), occasion.faqLongTail(city.name)];
+  return [...getStandardFaqs(city, occasion), occasion.faqLongTail[city.slug]];
 }
 
 // Converts a hex color like "#C1553A" into an rgba() string with the given
