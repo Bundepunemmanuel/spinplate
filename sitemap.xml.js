@@ -1,6 +1,6 @@
 import { getAllCityOccasionPaths, getAllStateSlugs } from "../data";
 
-const SITE_URL = "https://spinplate.vercel.app"; // update once deployed on a real domain
+const SITE_URL = "https://spinplate-com.vercel.app"; // update once deployed on a real domain
 
 function generateSitemap(cityOccasionPaths, stateSlugs) {
   const urls = [
