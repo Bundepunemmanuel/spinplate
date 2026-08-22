@@ -5,7 +5,7 @@ const SITE_URL = "https://spinplate.vercel.app"; // update once deployed on a re
 function generateSitemap(cityOccasionPaths, stateSlugs) {
   const urls = [
     { path: "", priority: "1.0" },
-    ...stateSlugs.map((s) => ({ path: s, priority: "0.7" })),
+    ...stateSlugs.map((s) => ({ path: `state/${s}`, priority: "0.7" })),
     ...cityOccasionPaths.map((p) => ({ path: `${p.city}/${p.occasion}`, priority: "0.8" })),
   ]
     .map(
