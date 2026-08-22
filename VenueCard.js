@@ -1,4 +1,5 @@
 import CategoryIcon from "./CategoryIcon";
+import ShareChallenge from "./ShareChallenge";
 
 // Builds a small bounding box around the venue for a free OpenStreetMap
 // embed — no API key, no billing, unlike Google Maps Embed API.
@@ -8,7 +9,7 @@ function buildOsmEmbedUrl(lat, lng) {
   return `https://www.openstreetmap.org/export/embed.html?bbox=${bbox}&layer=mapnik&marker=${lat},${lng}`;
 }
 
-export default function VenueCard({ venue, reason, occasionSlug, onSpinAgain, accent = "#3D1220" }) {
+export default function VenueCard({ venue, reason, city, occasion, onSpinAgain, accent = "#3D1220" }) {
   const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
     venue.name
   )}&query_place_id=&center=${venue.lat},${venue.lng}`;
@@ -20,7 +21,7 @@ export default function VenueCard({ venue, reason, occasionSlug, onSpinAgain, ac
           className="flex h-14 w-14 flex-shrink-0 items-center justify-center rounded-2xl"
           style={{ backgroundColor: `${accent}1A`, color: accent }}
         >
-          <CategoryIcon occasion={occasionSlug} />
+          <CategoryIcon occasion={occasion.slug} />
         </div>
         <button
           onClick={onSpinAgain}
@@ -62,6 +63,8 @@ export default function VenueCard({ venue, reason, occasionSlug, onSpinAgain, ac
       >
         Get Directions →
       </a>
+
+      <ShareChallenge venue={venue} city={city} occasion={occasion} accent={accent} />
 
       <div className="mt-3 text-center text-xs text-mute">
         Pulled from open map data — details may vary, worth a quick call ahead.

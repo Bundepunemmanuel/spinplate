@@ -60,6 +60,7 @@ export default function SpinWidget({ city, occasion, accent = "#C89B3C", accentT
   const [lateNightOnly, setLateNightOnly] = useState(false);
   const [outdoorOnly, setOutdoorOnly] = useState(occasion.extraFilter === "outdoorOnly");
   const [picked, setPicked] = useState(null);
+  const [isPressed, setIsPressed] = useState(false);
   const [reason, setReason] = useState("");
   const [spinning, setSpinning] = useState(false);
 
@@ -216,14 +217,24 @@ export default function SpinWidget({ city, occasion, accent = "#C89B3C", accentT
           {!picked && status !== "error" && (
             <button
               onClick={handleSpin}
+              onPointerDown={() => setIsPressed(true)}
+              onPointerUp={() => setIsPressed(false)}
+              onPointerLeave={() => setIsPressed(false)}
               disabled={status !== "ready" || eligible.length === 0 || spinning}
-              className={`flex w-full items-center justify-center gap-2 rounded-2xl py-4 text-base font-bold transition-transform active:scale-95 ${
+              className={`w-full rounded-3xl py-6 text-xl font-black uppercase tracking-wide transition-transform duration-75 ${
+                status === "ready" && eligible.length > 0 ? "cursor-pointer text-ink" : "cursor-not-allowed bg-cream/10 text-cream/40"
+              } ${spinning ? "animate-spin-pulse" : ""} ${isPressed ? "translate-y-1.5" : ""}`}
+              style={
                 status === "ready" && eligible.length > 0
-                  ? "bg-gold text-ink"
-                  : "cursor-not-allowed bg-cream/10 text-cream/40"
-              } ${spinning ? "animate-spin-pulse" : ""}`}
+                  ? {
+                      background: "linear-gradient(180deg, #FFD27A 0%, #E0B85C 40%, #C89B3C 100%)",
+                      boxShadow: isPressed ? "0 2px 0 #8a6116" : "0 6px 0 #8a6116, 0 8px 16px rgba(200,155,60,0.35)",
+                      animation: !isPressed && !spinning ? "button-glow 2.4s ease-in-out infinite" : undefined,
+                    }
+                  : { boxShadow: "0 6px 0 rgba(0,0,0,0.15)" }
+              }
             >
-              {spinning ? "Spinning…" : "🎯 Spin"}
+              {spinning ? "Spinning…" : "🎯 SPIN"}
             </button>
           )}
 
@@ -231,7 +242,8 @@ export default function SpinWidget({ city, occasion, accent = "#C89B3C", accentT
             <VenueCard
               venue={picked}
               reason={reason}
-              occasionSlug={occasion.slug}
+              city={city}
+              occasion={occasion}
               onSpinAgain={handleSpin}
               accent={accent}
             />
