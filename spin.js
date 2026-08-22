@@ -12,12 +12,36 @@ function parseSimpleRange(rangeStr) {
   return { startMin: h1 * 60 + m1, endMin: h2 * 60 + m2 };
 }
 
-export function isOpenNow(openingHoursStr, now = new Date()) {
+// Returns { day: "Mo", minutes: 735 } for the current wall-clock time in
+// the given IANA timezone — e.g. Denver's own local time, not the
+// visitor's device time. Without this, "open now" was being checked
+// against whatever timezone the visitor's phone happened to be set to,
+// which silently breaks for anyone not in the same timezone as the city
+// they're browsing.
+function getLocalDayAndMinutes(timezone, now) {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: timezone,
+    weekday: "short",
+    hour: "2-digit",
+    minute: "2-digit",
+    hourCycle: "h23",
+  }).formatToParts(now);
+
+  const get = (type) => parts.find((p) => p.type === type)?.value;
+  const weekdayLong = get("weekday"); // "Mon", "Tue", ...
+  const hour = Number(get("hour"));
+  const minute = Number(get("minute"));
+
+  const WEEKDAY_TO_CODE = { Sun: "Su", Mon: "Mo", Tue: "Tu", Wed: "We", Thu: "Th", Fri: "Fr", Sat: "Sa" };
+  return { day: WEEKDAY_TO_CODE[weekdayLong], minutes: hour * 60 + minute };
+}
+
+export function isOpenNow(openingHoursStr, timezone, now = new Date()) {
   if (!openingHoursStr) return "unknown";
   if (openingHoursStr.toLowerCase() === "24/7") return true;
+  if (!timezone) return "unknown"; // can't honestly evaluate without knowing whose "now" this is
 
-  const currentDay = DAY_CODES[now.getDay()];
-  const currentMin = now.getHours() * 60 + now.getMinutes();
+  const { day: currentDay, minutes: currentMin } = getLocalDayAndMinutes(timezone, now);
 
   const segments = openingHoursStr.split(";").map((s) => s.trim());
 
@@ -55,11 +79,11 @@ export function isOpenNow(openingHoursStr, now = new Date()) {
   return false;
 }
 
-export function filterVenues(venues, { maxDistanceKm, openNowOnly, lateNightOnly, outdoorOnly }) {
+export function filterVenues(venues, { maxDistanceKm, openNowOnly, lateNightOnly, outdoorOnly, timezone }) {
   return venues.filter((v) => {
     if (maxDistanceKm && v.distanceKm > maxDistanceKm) return false;
     if (openNowOnly) {
-      const open = isOpenNow(v.openingHours);
+      const open = isOpenNow(v.openingHours, timezone);
       if (open === false) return false;
       // "unknown" passes through — we don't want to hide a venue just
       // because its hours weren't mapped

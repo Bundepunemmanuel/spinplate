@@ -93,8 +93,9 @@ export default function SpinWidget({ city, occasion, accent = "#C89B3C", accentT
         openNowOnly,
         lateNightOnly: occasion.extraFilter === "lateNight" ? lateNightOnly : false,
         outdoorOnly: occasion.extraFilter === "outdoorOnly" ? outdoorOnly : false,
+        timezone: city.timezone,
       }),
-    [allVenues, maxDistanceKm, openNowOnly, lateNightOnly, outdoorOnly, occasion.extraFilter]
+    [allVenues, maxDistanceKm, openNowOnly, lateNightOnly, outdoorOnly, occasion.extraFilter, city.timezone]
   );
 
   function handleSpin() {
@@ -105,7 +106,7 @@ export default function SpinWidget({ city, occasion, accent = "#C89B3C", accentT
     // not because anything is actually processing
     setTimeout(() => {
       const venue = pickRandom(eligible);
-      const openStatus = isOpenNow(venue.openingHours);
+      const openStatus = isOpenNow(venue.openingHours, city.timezone);
       setReason(buildReason(venue, { openStatus }));
       setPicked(venue);
       setSpinning(false);
