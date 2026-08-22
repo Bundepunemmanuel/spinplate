@@ -55,7 +55,7 @@ export function isOpenNow(openingHoursStr, now = new Date()) {
   return false;
 }
 
-export function filterVenues(venues, { maxDistanceKm, openNowOnly }) {
+export function filterVenues(venues, { maxDistanceKm, openNowOnly, lateNightOnly, outdoorOnly }) {
   return venues.filter((v) => {
     if (maxDistanceKm && v.distanceKm > maxDistanceKm) return false;
     if (openNowOnly) {
@@ -64,8 +64,40 @@ export function filterVenues(venues, { maxDistanceKm, openNowOnly }) {
       // "unknown" passes through — we don't want to hide a venue just
       // because its hours weren't mapped
     }
+    if (lateNightOnly) {
+      const late = isOpenLate(v.openingHours);
+      if (late === false) return false;
+      // same reasoning as above — "unknown" stays in the pool
+    }
+    if (outdoorOnly && !v.outdoorSeating) return false;
     return true;
   });
+}
+
+// Checks whether a venue's mapped hours run past 10pm on any day. Reuses
+// the same conservative parsing as isOpenNow — anything it can't parse
+// confidently returns "unknown" rather than guessing, so a real late-night
+// spot never gets wrongly filtered out just because its hours string is
+// unusual.
+export function isOpenLate(openingHoursStr) {
+  if (!openingHoursStr) return "unknown";
+  if (openingHoursStr.toLowerCase() === "24/7") return true;
+
+  const segments = openingHoursStr.split(";").map((s) => s.trim());
+  let sawParseable = false;
+
+  for (const seg of segments) {
+    const dayMatch = seg.match(/^([A-Za-z,-]+)\s+(.+)$/);
+    if (!dayMatch) continue;
+    const [, , timePart] = dayMatch;
+    const range = parseSimpleRange(timePart);
+    if (!range) continue;
+    sawParseable = true;
+    // closes at/after 22:00, or wraps past midnight (end < start)
+    if (range.endMin >= 22 * 60 || range.endMin < range.startMin) return true;
+  }
+
+  return sawParseable ? false : "unknown";
 }
 
 // Uniform random pick. OSM has no reliable quality signal (no ratings) to

@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
-import { fetchVenues } from "./overpass";
+import { fetchVenues } from "./geoapify";
 import { filterVenues, pickRandom, isOpenNow } from "./spin";
 import { buildReason } from "./reasoning";
 import VenueCard from "./VenueCard";
@@ -10,8 +10,8 @@ const DISTANCE_OPTIONS = [
   { label: "5+ km", km: null },
 ];
 
-// Rotates through while we wait on the Overpass API, so the loading state
-// reads as "actively working" rather than a frozen screen.
+// Rotates through while we wait on Geoapify, so the loading state reads as
+// "actively working" rather than a frozen screen.
 const LOADING_CAPTIONS = [
   "Spinning the plate…",
   "Scouting the neighborhood…",
@@ -20,7 +20,7 @@ const LOADING_CAPTIONS = [
   "Nearly got a table…",
 ];
 
-function PlateSpinner({ accent, mirrorAttempt }) {
+function PlateSpinner() {
   const [captionIndex, setCaptionIndex] = useState(0);
 
   useEffect(() => {
@@ -33,10 +33,7 @@ function PlateSpinner({ accent, mirrorAttempt }) {
   return (
     <div className="flex flex-col items-center justify-center gap-4 py-6">
       <div className="relative h-20 w-20">
-        <div
-          className="absolute inset-0 rounded-full border-4"
-          style={{ borderColor: `${accent}40` }}
-        />
+        <div className="absolute inset-0 rounded-full border-4 border-gold/25" />
         <div
           className="absolute inset-0 flex items-start justify-center animate-[plate-spin_1.6s_linear_infinite]"
           style={{ transformOrigin: "50% 50%" }}
@@ -47,15 +44,8 @@ function PlateSpinner({ accent, mirrorAttempt }) {
           <span className="text-3xl leading-none">🍽️</span>
         </div>
       </div>
-      <div className="text-center">
-        <div className="text-sm font-semibold text-cream">
-          {LOADING_CAPTIONS[captionIndex]}
-        </div>
-        {mirrorAttempt > 0 && (
-          <div className="mt-1 font-mono text-[11px] text-cream/40">
-            trying another map source ({mirrorAttempt + 1}/3)…
-          </div>
-        )}
+      <div className="text-sm font-semibold text-cream">
+        {LOADING_CAPTIONS[captionIndex]}
       </div>
     </div>
   );
@@ -64,9 +54,11 @@ function PlateSpinner({ accent, mirrorAttempt }) {
 export default function SpinWidget({ city, occasion, accent = "#C89B3C", accentText = "#E0B85C" }) {
   const [status, setStatus] = useState("idle"); // idle | loading | ready | error
   const [allVenues, setAllVenues] = useState([]);
-  const [mirrorAttempt, setMirrorAttempt] = useState(0);
+  const [retryCount, setRetryCount] = useState(0);
   const [maxDistanceKm, setMaxDistanceKm] = useState(3);
   const [openNowOnly, setOpenNowOnly] = useState(false);
+  const [lateNightOnly, setLateNightOnly] = useState(false);
+  const [outdoorOnly, setOutdoorOnly] = useState(occasion.extraFilter === "outdoorOnly");
   const [picked, setPicked] = useState(null);
   const [reason, setReason] = useState("");
   const [spinning, setSpinning] = useState(false);
@@ -74,15 +66,11 @@ export default function SpinWidget({ city, occasion, accent = "#C89B3C", accentT
   useEffect(() => {
     let cancelled = false;
     setStatus("loading");
-    setMirrorAttempt(0);
     fetchVenues({
       lat: city.lat,
       lng: city.lng,
       radiusMeters: occasion.radiusMeters,
-      osmTags: occasion.osmTags,
-      onAttempt: (index) => {
-        if (!cancelled) setMirrorAttempt(index);
-      },
+      categories: occasion.categories,
     })
       .then((venues) => {
         if (cancelled) return;
@@ -96,11 +84,17 @@ export default function SpinWidget({ city, occasion, accent = "#C89B3C", accentT
     return () => {
       cancelled = true;
     };
-  }, [city.slug, occasion.slug]);
+  }, [city.slug, occasion.slug, retryCount]);
 
   const eligible = useMemo(
-    () => filterVenues(allVenues, { maxDistanceKm, openNowOnly }),
-    [allVenues, maxDistanceKm, openNowOnly]
+    () =>
+      filterVenues(allVenues, {
+        maxDistanceKm,
+        openNowOnly,
+        lateNightOnly: occasion.extraFilter === "lateNight" ? lateNightOnly : false,
+        outdoorOnly: occasion.extraFilter === "outdoorOnly" ? outdoorOnly : false,
+      }),
+    [allVenues, maxDistanceKm, openNowOnly, lateNightOnly, outdoorOnly, occasion.extraFilter]
   );
 
   function handleSpin() {
@@ -118,10 +112,14 @@ export default function SpinWidget({ city, occasion, accent = "#C89B3C", accentT
     }, 650);
   }
 
+  function handleRetry() {
+    setRetryCount((n) => n + 1);
+  }
+
   return (
     <div className="overflow-hidden rounded-card bg-wine2 p-6 sm:p-8">
       {status === "loading" ? (
-        <PlateSpinner accent={accent} mirrorAttempt={mirrorAttempt} />
+        <PlateSpinner />
       ) : (
         <>
           <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
@@ -134,7 +132,7 @@ export default function SpinWidget({ city, occasion, accent = "#C89B3C", accentT
                   {` mapped here — ${eligible.length} match your filters`}
                 </>
               )}
-              {status === "error" && "Couldn't reach the map data — try again"}
+              {status === "error" && "Couldn't reach the map data"}
             </div>
           </div>
 
@@ -167,6 +165,32 @@ export default function SpinWidget({ city, occasion, accent = "#C89B3C", accentT
             >
               Open now
             </button>
+            {occasion.extraFilter === "lateNight" && (
+              <button
+                onClick={() => setLateNightOnly((v) => !v)}
+                className="rounded-full px-4 py-2 text-xs font-semibold transition-all active:scale-95"
+                style={
+                  lateNightOnly
+                    ? { backgroundColor: accent, color: "#F7F0E4" }
+                    : { backgroundColor: "rgba(247,240,228,0.1)", color: "#F7F0E4" }
+                }
+              >
+                Stays open late
+              </button>
+            )}
+            {occasion.extraFilter === "outdoorOnly" && (
+              <button
+                onClick={() => setOutdoorOnly((v) => !v)}
+                className="rounded-full px-4 py-2 text-xs font-semibold transition-all active:scale-95"
+                style={
+                  outdoorOnly
+                    ? { backgroundColor: accent, color: "#F7F0E4" }
+                    : { backgroundColor: "rgba(247,240,228,0.1)", color: "#F7F0E4" }
+                }
+              >
+                Outdoor seating
+              </button>
+            )}
           </div>
 
           {status === "ready" && eligible.length === 0 && (
@@ -176,12 +200,19 @@ export default function SpinWidget({ city, occasion, accent = "#C89B3C", accentT
           )}
 
           {status === "error" && (
-            <div className="mb-5 rounded-2xl bg-cream/10 px-4 py-3 text-sm text-cream/80">
-              The free map service didn't respond in time. This can happen — give it another try in a moment.
+            <div className="mb-5 flex flex-col gap-3 rounded-2xl bg-cream/10 px-4 py-3 text-sm text-cream/80">
+              <span>The map service didn't respond in time. This can happen occasionally — try again.</span>
+              <button
+                onClick={handleRetry}
+                className="self-start rounded-full px-4 py-2 text-xs font-semibold transition-transform active:scale-95"
+                style={{ backgroundColor: accent, color: "#F7F0E4" }}
+              >
+                ↻ Try again
+              </button>
             </div>
           )}
 
-          {!picked && (
+          {!picked && status !== "error" && (
             <button
               onClick={handleSpin}
               disabled={status !== "ready" || eligible.length === 0 || spinning}

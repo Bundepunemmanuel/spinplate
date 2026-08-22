@@ -1,16 +1,20 @@
-import { getAllCityOccasionPaths } from "../data";
+import { getAllCityOccasionPaths, getAllStateSlugs } from "../data";
 
-const SITE_URL = "https://spinplate.vercel.app"; // update once deployed
+const SITE_URL = "https://spinplate.vercel.app"; // update once deployed on a real domain
 
-function generateSitemap(paths) {
-  const urls = ["", ...paths.map((p) => `${p.city}/${p.occasion}`)]
-    .map((path) => {
-      return `  <url>
+function generateSitemap(cityOccasionPaths, stateSlugs) {
+  const urls = [
+    { path: "", priority: "1.0" },
+    ...stateSlugs.map((s) => ({ path: s, priority: "0.7" })),
+    ...cityOccasionPaths.map((p) => ({ path: `${p.city}/${p.occasion}`, priority: "0.8" })),
+  ]
+    .map(
+      ({ path, priority }) => `  <url>
     <loc>${SITE_URL}/${path}</loc>
     <changefreq>weekly</changefreq>
-    <priority>${path === "" ? "1.0" : "0.8"}</priority>
-  </url>`;
-    })
+    <priority>${priority}</priority>
+  </url>`
+    )
     .join("\n");
 
   return `<?xml version="1.0" encoding="UTF-8"?>
@@ -20,7 +24,7 @@ ${urls}
 }
 
 export async function getServerSideProps({ res }) {
-  const sitemap = generateSitemap(getAllCityOccasionPaths());
+  const sitemap = generateSitemap(getAllCityOccasionPaths(), getAllStateSlugs());
   res.setHeader("Content-Type", "text/xml");
   res.write(sitemap);
   res.end();
