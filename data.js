@@ -950,6 +950,7 @@ const GENERIC_FAQ_TEMPLATE = {
 // actually tell you, since there's no ratings/reviews data behind any of this.
 function getStandardFaqs(city, occasion) {
   const label = occasion.name.toLowerCase();
+  const radiusKm = occasion.radiusMeters / 1000;
   return [
     {
       q: `How does SpinPlate pick a ${label} spot in ${city.name}?`,
@@ -966,6 +967,14 @@ function getStandardFaqs(city, occasion) {
     {
       q: `Does SpinPlate show ratings for ${city.name} ${label} spots?`,
       a: `No, on purpose. The underlying map data doesn't carry reliable rating data, and we'd rather leave it out than make something up. If you want reviews before you go, that's what your maps app is for.`,
+    },
+    {
+      q: `Best ${label} near me?`,
+      a: `"Best" is subjective, and there's no ratings data behind any of this to rank by. What SpinPlate does instead is nudge the random pick slightly toward listings with more complete map data — a name, an address, sometimes a cuisine tag — since a fuller listing tends to be a more established, real place.`,
+    },
+    {
+      q: `${occasion.name} spots near me?`,
+      a: `Every spot in the pool is within ${radiusKm}km of ${city.name}'s center — real, currently-mapped ${label} listings pulled live, not a static list someone wrote once. The exact count shifts as the underlying map data changes.`,
     },
   ];
 }

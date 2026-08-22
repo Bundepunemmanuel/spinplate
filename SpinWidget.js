@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { fetchVenues } from "./geoapify";
-import { filterVenues, pickRandom, isOpenNow } from "./spin";
+import { filterVenues, pickRandom, isOpenNow, getTopCuisines } from "./spin";
 import { buildReason } from "./reasoning";
 import VenueCard from "./VenueCard";
 
@@ -59,6 +59,7 @@ export default function SpinWidget({ city, occasion, accent = "#C89B3C", accentT
   const [openNowOnly, setOpenNowOnly] = useState(false);
   const [lateNightOnly, setLateNightOnly] = useState(false);
   const [outdoorOnly, setOutdoorOnly] = useState(occasion.extraFilter === "outdoorOnly");
+  const [selectedCuisine, setSelectedCuisine] = useState(null);
   const [picked, setPicked] = useState(null);
   const [isPressed, setIsPressed] = useState(false);
   const [reason, setReason] = useState("");
@@ -67,6 +68,7 @@ export default function SpinWidget({ city, occasion, accent = "#C89B3C", accentT
   useEffect(() => {
     let cancelled = false;
     setStatus("loading");
+    setSelectedCuisine(null); // reset so a stale cuisine from the previous city/occasion can't silently persist
     fetchVenues({
       lat: city.lat,
       lng: city.lng,
@@ -87,6 +89,8 @@ export default function SpinWidget({ city, occasion, accent = "#C89B3C", accentT
     };
   }, [city.slug, occasion.slug, retryCount]);
 
+  const cuisineOptions = useMemo(() => getTopCuisines(allVenues), [allVenues]);
+
   const eligible = useMemo(
     () =>
       filterVenues(allVenues, {
@@ -95,8 +99,9 @@ export default function SpinWidget({ city, occasion, accent = "#C89B3C", accentT
         lateNightOnly: occasion.extraFilter === "lateNight" ? lateNightOnly : false,
         outdoorOnly: occasion.extraFilter === "outdoorOnly" ? outdoorOnly : false,
         timezone: city.timezone,
+        cuisine: selectedCuisine,
       }),
-    [allVenues, maxDistanceKm, openNowOnly, lateNightOnly, outdoorOnly, occasion.extraFilter, city.timezone]
+    [allVenues, maxDistanceKm, openNowOnly, lateNightOnly, outdoorOnly, occasion.extraFilter, city.timezone, selectedCuisine]
   );
 
   function handleSpin() {
@@ -194,6 +199,36 @@ export default function SpinWidget({ city, occasion, accent = "#C89B3C", accentT
               </button>
             )}
           </div>
+
+          {cuisineOptions.length >= 2 && (
+            <div className="mb-5 flex flex-wrap gap-2">
+              <button
+                onClick={() => setSelectedCuisine(null)}
+                className="rounded-full px-4 py-2 text-xs font-semibold transition-all active:scale-95"
+                style={
+                  !selectedCuisine
+                    ? { backgroundColor: accent, color: "#F7F0E4" }
+                    : { backgroundColor: "rgba(247,240,228,0.1)", color: "#F7F0E4" }
+                }
+              >
+                All cuisines
+              </button>
+              {cuisineOptions.map((c) => (
+                <button
+                  key={c.value}
+                  onClick={() => setSelectedCuisine(c.value)}
+                  className="rounded-full px-4 py-2 text-xs font-semibold transition-all active:scale-95"
+                  style={
+                    selectedCuisine === c.value
+                      ? { backgroundColor: accent, color: "#F7F0E4" }
+                      : { backgroundColor: "rgba(247,240,228,0.1)", color: "#F7F0E4" }
+                  }
+                >
+                  {c.label}
+                </button>
+              ))}
+            </div>
+          )}
 
           {status === "ready" && eligible.length === 0 && (
             <div className="mb-5 rounded-2xl bg-cream/10 px-4 py-3 text-sm text-cream/80">

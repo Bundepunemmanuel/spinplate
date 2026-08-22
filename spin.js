@@ -79,9 +79,19 @@ export function isOpenNow(openingHoursStr, timezone, now = new Date()) {
   return false;
 }
 
-export function filterVenues(venues, { maxDistanceKm, openNowOnly, lateNightOnly, outdoorOnly, timezone }) {
+// Checks whether a venue's cuisine tag(s) include the given cuisine.
+// OSM cuisine values are semicolon-separated (e.g. "mexican;tex_mex"), so a
+// venue can match more than one filter chip.
+function venueHasCuisine(venue, cuisine) {
+  if (!venue.cuisine) return false;
+  const values = venue.cuisine.split(";").map((c) => c.trim().toLowerCase());
+  return values.includes(cuisine.toLowerCase());
+}
+
+export function filterVenues(venues, { maxDistanceKm, openNowOnly, lateNightOnly, outdoorOnly, timezone, cuisine }) {
   return venues.filter((v) => {
     if (maxDistanceKm && v.distanceKm > maxDistanceKm) return false;
+    if (cuisine && !venueHasCuisine(v, cuisine)) return false;
     if (openNowOnly) {
       const open = isOpenNow(v.openingHours, timezone);
       if (open === false) return false;
@@ -122,6 +132,30 @@ export function isOpenLate(openingHoursStr) {
   }
 
   return sawParseable ? false : "unknown";
+}
+
+// Derives the cuisine filter chips live from the venues actually returned
+// for this city+category — never a hardcoded list. Returns the top few by
+// frequency, title-cased for display. Only meaningful with real variety in
+// the pool, so callers should skip rendering the filter row entirely if
+// this comes back with fewer than 2 options.
+export function getTopCuisines(venues, max = 6) {
+  const counts = {};
+  venues.forEach((v) => {
+    if (!v.cuisine) return;
+    v.cuisine.split(";").forEach((raw) => {
+      const clean = raw.trim().toLowerCase();
+      if (!clean) return;
+      counts[clean] = (counts[clean] || 0) + 1;
+    });
+  });
+  return Object.entries(counts)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, max)
+    .map(([value]) => ({
+      value,
+      label: value.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase()),
+    }));
 }
 
 // Uniform random pick. OSM has no reliable quality signal (no ratings) to
