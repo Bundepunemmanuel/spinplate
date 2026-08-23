@@ -1006,6 +1006,32 @@ export function getCityNote(city, occasion) {
   return CITY_NOTES[occasion.slug]?.[city.slug] || null;
 }
 
+// One honest, occasion-level practical sentence, reused across every city
+// in that category (both flagship and data-driven pages) as a consistent
+// third sentence in the "About" section. Deliberately general — real
+// advice about how the category/data behaves, not a fabricated per-city
+// claim. This is how the About section stays a genuine paragraph at 650
+// pages without inventing "local color" for cities we don't actually know.
+const OCCASION_TIPS = {
+  brunch: "Spinning earlier in the day tends to turn up shorter waits, especially on weekends.",
+  "date-night": "If ambiance matters more than food, the outdoor-seating toggle is the closest honest proxy this data offers.",
+  coffee: "There's no reliable wifi or seating-capacity tag, so if you need a place to work, it's worth a quick look at the map pin before committing.",
+  "food-trucks": "Truck hours are inconsistently mapped, so treat anything without listed hours as worth a call or a text before the drive.",
+  "happy-hour": "None of this tracks drink specials or pricing, so the deal-hunting part is still on you once you get there.",
+  lunch: "A tighter distance filter matters more here than for most categories, since lunch breaks don't leave much room for a long drive.",
+  "late-night": "Toggle \"stays open late\" if the default pool feels too broad — not every bar or fast-food spot in the category actually stays open past dinner.",
+  "family-dinner": "There's no kid-friendly tag to filter on, so a fully-mapped, established-looking listing is generally a safer bet than a sparse one.",
+  "patio-outdoor": "Coverage depends entirely on whether someone bothered to map the outdoor-seating detail, so a shorter list here doesn't necessarily mean fewer patios exist.",
+  bars: "No ratings factor into the pick, so spin again if the first one doesn't match the vibe you're after.",
+  "dessert-ice-cream": "This stays separate from general restaurants with a dessert menu — it's dedicated ice cream shops and dessert cafes only.",
+  bakeries: "This filters for dedicated bakeries, not cafes that happen to sell pastries on the side.",
+  breweries: "This looks for taprooms specifically, not brewing facilities without a public space to actually sit and drink.",
+};
+
+export function getOccasionTip(occasionSlug) {
+  return OCCASION_TIPS[occasionSlug] || "";
+}
+
 // Converts a hex color like "#C1553A" into an rgba() string with the given
 // alpha, for tinted backgrounds/borders derived from a city's accent color.
 export function withAlpha(hex, alpha) {

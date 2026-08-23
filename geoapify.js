@@ -97,6 +97,10 @@ export async function fetchAreaStats({ lat, lng, radiusMeters, categories }) {
     if (!venues.length) return null;
 
     const withOutdoor = venues.filter((v) => v.outdoorSeating).length;
+    const withWheelchair = venues.filter((v) => v.wheelchair).length;
+    const halfRadiusKm = radiusMeters / 1000 / 2;
+    const withinHalfRadius = venues.filter((v) => v.distanceKm <= halfRadiusKm).length;
+
     const cuisineCounts = {};
     venues.forEach((v) => {
       if (!v.cuisine) return;
@@ -114,6 +118,9 @@ export async function fetchAreaStats({ lat, lng, radiusMeters, categories }) {
     return {
       count: venues.length,
       outdoorPct: Math.round((withOutdoor / venues.length) * 100),
+      wheelchairPct: Math.round((withWheelchair / venues.length) * 100),
+      closePct: Math.round((withinHalfRadius / venues.length) * 100),
+      halfRadiusKm,
       topCuisines,
     };
   } catch {
@@ -159,6 +166,12 @@ export function buildStatSentence(city, occasion, stats) {
 
   if (stats.outdoorPct > 0) {
     sentence += ` About ${stats.outdoorPct}% list outdoor seating.`;
+  }
+  if (stats.closePct >= 40) {
+    sentence += ` ${stats.closePct}% of those are within ${stats.halfRadiusKm}km — genuinely close, not just technically in range.`;
+  }
+  if (stats.wheelchairPct >= 20) {
+    sentence += ` ${stats.wheelchairPct}% are tagged wheelchair accessible.`;
   }
   if (stats.topCuisines.length) {
     sentence += ` The most common cuisine${stats.topCuisines.length > 1 ? "s" : ""} mapped ${

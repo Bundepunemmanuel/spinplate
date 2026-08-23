@@ -61,6 +61,7 @@ export default function SpinWidget({ city, occasion, accent = "#C89B3C", accentT
   const [outdoorOnly, setOutdoorOnly] = useState(occasion.extraFilter === "outdoorOnly");
   const [selectedCuisine, setSelectedCuisine] = useState(null);
   const [picked, setPicked] = useState(null);
+  const [pickedPoolSize, setPickedPoolSize] = useState(0);
   const [isPressed, setIsPressed] = useState(false);
   const [reason, setReason] = useState("");
   const [spinning, setSpinning] = useState(false);
@@ -108,6 +109,7 @@ export default function SpinWidget({ city, occasion, accent = "#C89B3C", accentT
     if (!eligible.length) return;
     setSpinning(true);
     setPicked(null);
+    const poolSizeAtSpin = eligible.length;
     // brief delay purely for the spin animation to feel intentional,
     // not because anything is actually processing
     setTimeout(() => {
@@ -115,6 +117,7 @@ export default function SpinWidget({ city, occasion, accent = "#C89B3C", accentT
       const openStatus = isOpenNow(venue.openingHours, city.timezone);
       setReason(buildReason(venue, { openStatus }));
       setPicked(venue);
+      setPickedPoolSize(poolSizeAtSpin);
       setSpinning(false);
     }, 650);
   }
@@ -279,6 +282,7 @@ export default function SpinWidget({ city, occasion, accent = "#C89B3C", accentT
               reason={reason}
               city={city}
               occasion={occasion}
+              poolSize={pickedPoolSize}
               onSpinAgain={handleSpin}
               accent={accent}
             />

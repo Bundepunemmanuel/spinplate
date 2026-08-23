@@ -9,7 +9,7 @@ function buildOsmEmbedUrl(lat, lng) {
   return `https://www.openstreetmap.org/export/embed.html?bbox=${bbox}&layer=mapnik&marker=${lat},${lng}`;
 }
 
-export default function VenueCard({ venue, reason, city, occasion, onSpinAgain, accent = "#3D1220" }) {
+export default function VenueCard({ venue, reason, city, occasion, poolSize, onSpinAgain, accent = "#3D1220" }) {
   const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
     venue.name
   )}&query_place_id=&center=${venue.lat},${venue.lng}`;
@@ -64,7 +64,7 @@ export default function VenueCard({ venue, reason, city, occasion, onSpinAgain, 
         Get Directions →
       </a>
 
-      <ShareChallenge venue={venue} city={city} occasion={occasion} accent={accent} />
+      <ShareChallenge venue={venue} city={city} occasion={occasion} poolSize={poolSize} accent={accent} />
 
       <div className="mt-3 text-center text-xs text-mute">
         Pulled from open map data — details may vary, worth a quick call ahead.
